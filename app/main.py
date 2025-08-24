@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import uuid
 from typing import List
 
 import httpx
@@ -11,6 +12,7 @@ from slack_bolt.async_app import AsyncApp
 from slack_bolt.adapter.starlette.async_handler import AsyncSlackRequestHandler
 from google.genai import types
 from google.adk.agents import Agent
+from google.adk.events.event import Event
 from google.adk.runners import InMemoryRunner
 from google.adk.tools import google_search
 
@@ -63,6 +65,36 @@ async def _build_content_from_event(event: dict) -> types.Content:
     return types.Content(role="user", parts=parts)
 
 
+async def _populate_session_from_thread(
+    *,
+    session,
+    client,
+    channel: str,
+    thread_ts: str,
+    current_ts: str,
+) -> None:
+    """Populate an ADK session with existing Slack thread history."""
+    resp = await client.conversations_replies(channel=channel, ts=thread_ts)
+    for m in resp.get("messages", []):
+        if m.get("ts") == current_ts:
+            continue
+        if m.get("bot_id"):
+            content = types.Content(
+                role="model",
+                parts=[types.Part.from_text(text=m.get("text", ""))],
+            )
+            author = "model"
+        else:
+            content = await _build_content_from_event(m)
+            author = "user"
+        event_obj = Event(
+            invocation_id=str(uuid.uuid4()),
+            author=author,
+            content=content,
+        )
+        await session_service.append_event(session=session, event=event_obj)
+
+
 root_agent = Agent(
     name="slack_bot_agent",
     model=MODEL_NAME,
@@ -99,6 +131,18 @@ async def handle_mention(body, say, client, logger, ack):
         )
     except Exception:
         pass
+
+    session = await session_service.get_session(
+        app_name=APP_NAME, user_id=user_id, session_id=thread_ts
+    )
+    if session and not session.events:
+        await _populate_session_from_thread(
+            session=session,
+            client=client,
+            channel=event["channel"],
+            thread_ts=thread_ts,
+            current_ts=event["ts"],
+        )
 
     try:
         reply_text = ""
