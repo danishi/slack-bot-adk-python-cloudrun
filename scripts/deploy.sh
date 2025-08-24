@@ -8,13 +8,13 @@ if [[ -f .env ]]; then
 fi
 
 # ========= Config =========
-SERVICE_NAME=${SERVICE_NAME:-slack-gemini-bot}
+SERVICE_NAME=${SERVICE_NAME:-slack-adk-bot}
 
 REGION=${GOOGLE_LOCATION:-us-central1}
 
 AR_LOCATION=${AR_LOCATION:-$REGION}
 
-AR_REPO=${AR_REPO:-slack-apps}
+AR_REPO=${AR_REPO:-slack-adk-apps}
 
 PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}
 
