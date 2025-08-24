@@ -1,6 +1,6 @@
 import os
-import asyncio
 import json
+import re
 from typing import List
 
 import httpx
@@ -9,18 +9,18 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from slack_bolt.async_app import AsyncApp
 from slack_bolt.adapter.starlette.async_handler import AsyncSlackRequestHandler
-from google import genai
 from google.genai import types
-from google.genai.types import Tool, GenerateContentConfig
+from google.adk.agents import Agent
+from google.adk.runners import InMemoryRunner
+from google.adk.tools import google_search
 
 # Environment variables
 load_dotenv()
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-PROJECT_ID = os.environ.get("GOOGLE_PROJECT")
-LOCATION = os.environ.get("GOOGLE_LOCATION", "us-central1")
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
 ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
+APP_NAME = os.environ.get("APP_NAME", "slack-bot")
 
 # Initialize Slack Bolt AsyncApp
 bolt_app = AsyncApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
@@ -28,97 +28,91 @@ handler = AsyncSlackRequestHandler(bolt_app)
 
 fastapi_app = FastAPI()
 
-async def _build_contents_from_thread(client, channel: str, thread_ts: str) -> List[types.Content]:
-    """Fetch thread messages and build google-genai contents."""
-    history = await client.conversations_replies(channel=channel, ts=thread_ts, limit=50)
-    contents: List[types.Content] = []
 
-    import re
+async def _build_content_from_event(event: dict) -> types.Content:
+    parts: List[types.Part] = []
+    text = event.get("text") or ""
+    text = re.sub(r"<@[^>]+>\s*", "", text).strip()
+    if text:
+        parts.append(types.Part.from_text(text=text))
+
     async with httpx.AsyncClient(timeout=30.0) as http_client:
-        for msg in sorted(history["messages"], key=lambda m: float(m["ts"])):
-            is_bot = bool(msg.get("bot_id") or msg.get("subtype") == "bot_message")
-            role = "model" if is_bot else "user"
-            parts = []
+        for f in event.get("files", []):
+            mimetype = (f.get("mimetype") or "")
+            url = f.get("url_private_download")
+            if not url:
+                continue
+            supported = (
+                mimetype.startswith(("image/", "video/", "audio/", "text/"))
+                or mimetype == "application/pdf"
+            )
+            if not supported:
+                continue
+            resp = await http_client.get(
+                url,
+                headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
+            )
+            resp.raise_for_status()
+            if mimetype.startswith("text/"):
+                parts.append(types.Part.from_text(text=resp.text))
+            else:
+                parts.append(types.Part.from_bytes(data=resp.content, mime_type=mimetype))
 
-            text = msg.get("text") or ""
-            text = re.sub(r"<@[^>]+>\s*", "", text).strip()
-            if text:
-                parts.append(types.Part.from_text(text=text))
+    if not parts:
+        parts.append(types.Part.from_text(text="(no content)"))
+    return types.Content(role="user", parts=parts)
 
-            for f in msg.get("files", []):
-                mimetype = (f.get("mimetype") or "")
-                url = f.get("url_private_download")
-                if not url:
-                    continue
 
-                supported = (
-                    mimetype.startswith(("image/", "video/", "audio/", "text/"))
-                    or mimetype == "application/pdf"
-                )
-                if not supported:
-                    continue
+root_agent = Agent(
+    name="slack_bot_agent",
+    model=MODEL_NAME,
+    instruction="""You are acting as a Slack Bot. All your responses must be formatted using Slack-compatible Markdown.
 
-                resp = await http_client.get(
-                    url,
-                    headers={"Authorization": f"Bearer {SLACK_BOT_TOKEN}"}
-                )
-                resp.raise_for_status()
+### Formatting Rules
+- **Headings / emphasis**: Use `*bold*` for section titles or important words.
+- *Italics*: Use `_underscores_` for emphasis when needed.
+- Lists: Use `-` for unordered lists, and `1.` for ordered lists.
+- Code snippets: Use triple backticks (```) for multi-line code blocks, and backticks (`) for inline code.
+- Links: Use `<https://example.com|display text>` format.
+- Blockquotes: Use `>` at the beginning of a line.
 
-                if mimetype.startswith("text/"):
-                    parts.append(types.Part.from_text(text=resp.text))
-                else:
-                    parts.append(types.Part.from_bytes(data=resp.content, mime_type=mimetype))
+Always structure your response clearly, using these rules so it renders correctly in Slack.""",
+    tools=[google_search],
+)
 
-            if parts:
-                contents.append(types.Content(role=role, parts=parts))
-
-    if not contents:
-        contents = [types.Content(role="user", parts=[types.Part.from_text(text="(no content)")])]
-    return contents
+runner = InMemoryRunner(agent=root_agent, app_name=APP_NAME)
+session_service = runner.session_service
 
 @bolt_app.event("app_mention")
 async def handle_mention(body, say, client, logger, ack):
     # Ack as soon as possible to avoid Slack retries that can cause duplicated responses
     await ack()
-    
+
     event = body["event"]
-    channel = event["channel"]
     thread_ts = event.get("thread_ts") or event["ts"]
-
-    contents = await _build_contents_from_thread(client, channel, thread_ts)
-
-    def call_gemini() -> str:
-        genai_client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
-        response = genai_client.models.generate_content(
-            model=MODEL_NAME,
-            contents=contents,
-            config=GenerateContentConfig(
-                system_instruction="""
-                You are acting as a Slack Bot. All your responses must be formatted using Slack-compatible Markdown.
-
-                ### Formatting Rules
-                - **Headings / emphasis**: Use `*bold*` for section titles or important words.
-                - *Italics*: Use `_underscores_` for emphasis when needed.
-                - Lists: Use `-` for unordered lists, and `1.` for ordered lists.
-                - Code snippets: Use triple backticks (```) for multi-line code blocks, and backticks (`) for inline code.
-                - Links: Use `<https://example.com|display text>` format.
-                - Blockquotes: Use `>` at the beginning of a line.
-
-                Always structure your response clearly, using these rules so it renders correctly in Slack.
-                """,
-                tools=[
-                    {"url_context": {}},
-                    {"google_search": {}},
-                ],
-            )
-        )
-        return response.text
+    user_id = event.get("user", "unknown")
+    user_content = await _build_content_from_event(event)
 
     try:
-        reply_text = await asyncio.to_thread(call_gemini)
+        await session_service.create_session(
+            app_name=APP_NAME, user_id=user_id, session_id=thread_ts
+        )
+    except Exception:
+        pass
+
+    try:
+        reply_text = ""
+        async for ev in runner.run_async(
+            user_id=user_id, session_id=thread_ts, new_message=user_content
+        ):
+            if ev.is_final_response():
+                reply_text = ev.content.parts[0].text.strip()
+                break
+        if not reply_text:
+            reply_text = "(no response)"
     except Exception as e:
-        logger.exception("Gemini call failed")
-        reply_text = f"Error from Gemini: {e}"
+        logger.exception("Agent run failed")
+        reply_text = f"Error from Agent: {e}"
 
     await say(
         blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": reply_text}}],
