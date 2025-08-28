@@ -14,7 +14,10 @@ from google.genai import types
 from google.adk.agents import Agent
 from google.adk.events.event import Event
 from google.adk.runners import InMemoryRunner
-from google.adk.tools import google_search
+# from google.adk.tools import google_search
+
+from .agents.comedian import comedian_agent
+from .tools.get_current_datetime import get_current_datetime
 
 # Environment variables
 load_dotenv()
@@ -98,7 +101,8 @@ async def _populate_session_from_thread(
 root_agent = Agent(
     name="slack_bot_agent",
     model=MODEL_NAME,
-    instruction="""You are acting as a Slack Bot. All your responses must be formatted using Slack-compatible Markdown.
+    instruction="""
+You are acting as a Slack Bot. All your responses must be formatted using Slack-compatible Markdown.
 
 ### Formatting Rules
 - **Headings / emphasis**: Use `*bold*` for section titles or important words.
@@ -109,11 +113,17 @@ root_agent = Agent(
 - Blockquotes: Use `>` at the beginning of a line.
 
 Always structure your response clearly, using these rules so it renders correctly in Slack.""",
-    tools=[google_search],
+    tools=[
+        get_current_datetime,
+    ],
+    sub_agents=[
+        comedian_agent,
+    ],
 )
 
 runner = InMemoryRunner(agent=root_agent, app_name=APP_NAME)
 session_service = runner.session_service
+
 
 @bolt_app.event("app_mention")
 async def handle_mention(body, say, client, logger, ack):
@@ -164,6 +174,7 @@ async def handle_mention(body, say, client, logger, ack):
         thread_ts=thread_ts,
     )
 
+
 @fastapi_app.post("/slack/events")
 async def slack_events(req: Request):
     retry_num = req.headers.get("x-slack-retry-num")
@@ -180,6 +191,7 @@ async def slack_events(req: Request):
     if ALLOWED_SLACK_WORKSPACE and team_id != ALLOWED_SLACK_WORKSPACE:
         return JSONResponse(status_code=403, content={"error": f"{team_id}:workspace_not_allowed"})
     return await handler.handle(req)
+
 
 @fastapi_app.get("/")
 async def root():

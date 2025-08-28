@@ -50,6 +50,18 @@ requirements.txt     # Python dependencies
    ```
 4. Use a tunneling tool like `ngrok` to expose `http://localhost:8080/slack/events` to Slack during development.
 
+### Optional: Use the ADK Web Development UI
+
+The Agent Development Kit includes a built-in web-based Development UI that you can run locally. It's a powerful tool for testing, debugging, and interacting with your agent during development. It provides a chat interface to send messages to your agent and inspect the results.
+
+1.  **Start the ADK web server:**
+    ```bash
+    adk web
+    ```
+
+2.  **Interact with your agent:**
+    Open the local URL (usually `http://127.0.0.1:8000`) in your browser to use the Development UI.
+
 ## Slack App Configuration
 1. Create a new Slack app at <https://api.slack.com/apps>.
 2. Under **OAuth & Permissions**, add the following Bot Token scopes:
