@@ -20,10 +20,16 @@ If you want to use the [Google Gen AI SDK](https://googleapis.github.io/python-g
 ```
 app/
   main.py           # FastAPI app and Slack Bolt handlers
+  agents/
+    comedian.py     # ex: Comedian agent implementation
+  tools/
+    get_current_datetime.py  # ex: Date/time utility tool
 scripts/
   deploy.sh         # Helper script to deploy to Cloud Run
-Dockerfile           # Container definition for Cloud Run
-requirements.txt     # Python dependencies
+Dockerfile          # Container definition for Cloud Run
+requirements.txt    # Python dependencies
+llms.txt           # ADK documentation for LLM reference
+llms-full.txt      # Extended ADK documentation for LLM context
 ```
 
 ## Prerequisites
