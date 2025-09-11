@@ -125,6 +125,17 @@ runner = InMemoryRunner(agent=root_agent, app_name=APP_NAME)
 session_service = runner.session_service
 
 
+MAX_SLACK_BLOCK_CHARS = 3000
+
+
+def _build_slack_blocks_from_text(text: str) -> List[dict]:
+    """Split long text into Slack blocks within allowed size."""
+    return [
+        {"type": "section", "text": {"type": "mrkdwn", "text": text[i : i + MAX_SLACK_BLOCK_CHARS]}}
+        for i in range(0, len(text), MAX_SLACK_BLOCK_CHARS)
+    ] or [{"type": "section", "text": {"type": "mrkdwn", "text": ""}}]
+
+
 @bolt_app.event("app_mention")
 async def handle_mention(body, say, client, logger, ack):
     # Ack as soon as possible to avoid Slack retries that can cause duplicated responses
@@ -168,9 +179,10 @@ async def handle_mention(body, say, client, logger, ack):
         logger.exception("Agent run failed")
         reply_text = f"Error from Agent: {e}"
 
+    blocks = _build_slack_blocks_from_text(reply_text)
     await say(
-        blocks=[{"type": "section", "text": {"type": "mrkdwn", "text": reply_text}}],
-        text=reply_text,
+        blocks=blocks,
+        text=reply_text[:MAX_SLACK_BLOCK_CHARS],
         thread_ts=thread_ts,
     )
 
