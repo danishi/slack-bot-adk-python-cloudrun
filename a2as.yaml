@@ -1,0 +1,155 @@
+manifest:
+  version: "0.1.3"
+  schema: https://a2as.org/cert/schema
+  subject:
+    name: danishi/slack-bot-adk-python-cloudrun
+    source: https://github.com/danishi/slack-bot-adk-python-cloudrun
+    branch: main
+    commit: "0545c3ee"
+    scope: [app/tools/get_current_datetime.py, app/main.py, app/__init__.py, app/agents/comedian.py]
+  issued:
+    by: A2AS.org
+    at: '2026-02-11T16:41:38Z'
+    url: https://a2as.org/certified/agents/danishi/slack-bot-adk-python-cloudrun
+  signatures:
+    digest: sha256:yQwGtui9KOaGfu1kbKoA2wrsHd3mVl83EAa7XsovGqs
+    key: ed25519:celE1irpz8iRPxRDi35xLw40gCYF1H1sQlvHs5iN1W4
+    sig: ed25519:crt9sR_pBisKsxcbGprH7EfhOnJZAogBDJYYWCbEE8-8QZ3HMgTgCpuU0DGA9RlWla2Scxkk6mNenGMaCruMBg
+
+agents:
+  comedian_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    params:
+      name: comedian_agent
+      planner: BuiltInPlanner
+      description: Use this agent to generate witty, humorous, and lighthearted responses.It transforms any input into a comedic
+        remark, pun, or short bit while staying safe and engaging.
+      instruction: ['**Role & Persona**', 'You are a professional comedian agent. Your job is to entertain through clever,
+          witty, and humorous remarks. You blend stand-up style comedy, observational humor, and playful exaggeration, while
+          keeping your tone light, engaging, and audience-friendly.', '**Guidelines**', '* Always aim for humor: jokes, witty
+          comments, playful exaggerations, or puns.', '* Use everyday situations, pop culture, or absurd twists to make responses
+          fun.', '* Keep the humor lighthearted and safe; avoid offensive, harmful, or discriminatory jokes.', '* If asked
+          about serious topics, still bring a humorous spin while respecting the sensitivity of the subject.', '* Feel free
+          to break the “fourth wall” (self-aware humor about being an AI comedian).', '**Style**', '* Short punchlines and
+          snappy one-liners work best.', '* Occasionally build up a mini “bit” (setup → punchline).', '* Use conversational
+          humor as if you were on stage talking to a live audience.', '**Examples**', '* User: *Tell me about AI.*', 'Comedian
+          Agent: “AI is like a teenager—knows everything, but still asks you for Wi-Fi.”', '* User: *What’s the weather like?*',
+        'Comedian Agent: “It’s so hot outside, my ice cream applied for life insurance.”', '* User: *Give me motivation.*',
+        'Comedian Agent: “Remember: even a broken clock is right twice a day… and that clock still gets more rest than you.”']
+  root_agent:
+    type: instance
+    models: [gemini-2.5-flash]
+    tools: [get_current_datetime]
+    params:
+      name: slack_bot_agent
+      instruction: [You are acting as a Slack Bot. All your responses must be formatted using Slack-compatible Markdown.,
+        '### Formatting Rules', '- **Headings / emphasis**: Use `*bold*` for section titles or important words.', '- *Italics*:
+          Use `_underscores_` for emphasis when needed.', '- Lists: Use `-` for unordered lists, and `1.` for ordered lists.',
+        '- Code snippets: Use triple backticks (```) for multi-line code blocks, and backticks (`) for inline code.', '- Links:
+          Use `<https://example.com|display text>` format.', '- Blockquotes: Use `>` at the beginning of a line.', 'Always
+          structure your response clearly, using these rules so it renders correctly in Slack.']
+      sub_agents: [comedian_agent]
+
+models:
+  gemini-2.5-flash:
+    type: literal
+    agents: [root_agent, comedian_agent]
+
+tools:
+  get_current_datetime:
+    type: function
+    agents: [root_agent]
+    params:
+      description: |-
+        Gets the current date and time for a given timezone.
+
+        Args:
+            timezone: The timezone to get the current time from. Defaults to "America/Los_Angeles".
+
+teams:
+  root_agent:
+    type: hierarchy
+    agents: [root_agent, comedian_agent]
+
+imports:
+  Agent: google.adk.Agent
+  AsyncApp: slack_bolt.async_app.AsyncApp
+  AsyncSlackRequestHandler: slack_bolt.adapter.starlette.async_handler.AsyncSlackRequestHandler
+  BuiltInPlanner: google.adk.planners.BuiltInPlanner
+  comedian_agent: agents.comedian.comedian_agent
+  datetime: datetime
+  Event: google.adk.events.event.Event
+  FastAPI: fastapi.FastAPI
+  get_current_datetime: tools.get_current_datetime.get_current_datetime
+  httpx: httpx
+  InMemoryRunner: google.adk.runners.InMemoryRunner
+  json: json
+  JSONResponse: fastapi.responses.JSONResponse
+  List: typing.List
+  load_dotenv: dotenv.load_dotenv
+  os: os
+  pytz: pytz
+  re: re
+  Request: fastapi.Request
+  root_agent: main.root_agent
+  ToolContext: google.adk.tools.ToolContext
+  types: google.genai.types
+  uuid: uuid
+  uvicorn: uvicorn
+
+functions:
+  _build_content_from_event:
+    type: async
+    module: app.main
+    args: [event]
+    params:
+      returns: types.Content
+  _build_slack_blocks_from_text:
+    type: sync
+    module: app.main
+    args: [text]
+    params:
+      returns: List[dict]
+  _populate_session_from_thread:
+    type: async
+    module: app.main
+    params:
+      returns: None
+  get_current_datetime:
+    type: async
+    module: app.tools.get_current_datetime
+    args: [timezone, tool_context]
+  handle_mention:
+    type: async
+    module: app.main
+    args: [body, say, client, logger, ack]
+  root:
+    type: async
+    module: app.main
+  slack_events:
+    type: async
+    module: app.main
+    args: [req]
+
+variables:
+  ALLOWED_SLACK_WORKSPACE:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [app.main]
+  APP_NAME:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [app.main]
+  MODEL_NAME:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [app.main, app.agents.comedian]
+  PORT:
+    type: env
+    params:
+      caller: [os.environ.get]
+      path: [app.main]
