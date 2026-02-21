@@ -10,10 +10,10 @@ fi
 # ========= Config =========
 SERVICE_NAME=${SERVICE_NAME:-slack-adk-bot}
 
-CLOUD_RUN_LOCATION=${CLOUD_RUN_LOCATION:-us-central1}
-MODEL_LOCATION=${MODEL_LOCATION:-us-central1}
+REGION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+MODEL_LOCATION=${MODEL_LOCATION:-$REGION}
 
-AR_LOCATION=${AR_LOCATION:-$CLOUD_RUN_LOCATION}
+AR_LOCATION=${AR_LOCATION:-$REGION}
 
 AR_REPO=${AR_REPO:-slack-adk-apps}
 
@@ -61,7 +61,7 @@ gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}"
 # ========= Deploy to Cloud Run =========
 SERVICE_URL=$(gcloud run deploy "${SERVICE_NAME}" \
   --image "${IMAGE}" \
-  --region "${CLOUD_RUN_LOCATION}" \
+  --region "${REGION}" \
   --platform managed \
   --allow-unauthenticated \
   --no-cpu-throttling  \
@@ -72,8 +72,8 @@ SERVICE_URL=$(gcloud run deploy "${SERVICE_NAME}" \
 echo "--------------------------------------------"
 echo "✅ Deployment completed"
 echo "Service: ${SERVICE_NAME}"
-echo "Cloud Run Region: ${CLOUD_RUN_LOCATION}"
-echo "Model Region:    ${MODEL_LOCATION}"
+echo "Region:  ${REGION}"
+echo "Model:   ${MODEL_LOCATION}"
 echo "Image:   ${IMAGE}"
 echo "URL:     ${SERVICE_URL}"
 echo "--------------------------------------------"
