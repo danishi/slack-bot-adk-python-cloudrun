@@ -33,6 +33,43 @@ handler = AsyncSlackRequestHandler(bolt_app)
 
 fastapi_app = FastAPI()
 
+# Cache for Slack user display names: user_id -> display_name
+_user_name_cache: dict[str, str] = {}
+# Bot's own user ID (resolved once at first mention)
+_bot_user_id: str | None = None
+
+
+async def _resolve_user_name(client, user_id: str) -> str:
+    """Resolve a Slack user ID to a display name, with caching."""
+    if user_id in _user_name_cache:
+        return _user_name_cache[user_id]
+    try:
+        resp = await client.users_info(user=user_id)
+        user_info = resp.get("user", {})
+        profile = user_info.get("profile", {})
+        name = (
+            profile.get("display_name")
+            or profile.get("real_name")
+            or user_info.get("real_name")
+            or user_id
+        )
+        _user_name_cache[user_id] = name
+    except Exception:
+        _user_name_cache[user_id] = user_id
+    return _user_name_cache[user_id]
+
+
+async def _get_bot_user_id(client) -> str:
+    """Get the bot's own Slack user ID via auth.test, cached after first call."""
+    global _bot_user_id
+    if _bot_user_id is None:
+        try:
+            resp = await client.auth_test()
+            _bot_user_id = resp.get("user_id", "")
+        except Exception:
+            _bot_user_id = ""
+    return _bot_user_id
+
 
 async def _build_content_from_event(event: dict) -> types.Content:
     parts: List[types.Part] = []
@@ -77,18 +114,25 @@ async def _populate_session_from_thread(
     current_ts: str,
 ) -> None:
     """Populate an ADK session with existing Slack thread history."""
+    bot_uid = await _get_bot_user_id(client)
     resp = await client.conversations_replies(channel=channel, ts=thread_ts)
     for m in resp.get("messages", []):
         if m.get("ts") == current_ts:
             continue
-        if m.get("bot_id"):
+        msg_user = m.get("user", "")
+        is_bot = bool(m.get("bot_id")) or msg_user == bot_uid
+        if is_bot:
             content = types.Content(
                 role="model",
                 parts=[types.Part.from_text(text=m.get("text", ""))],
             )
             author = "model"
         else:
+            speaker_name = await _resolve_user_name(client, msg_user) if msg_user else "unknown"
             content = await _build_content_from_event(m)
+            # Prepend speaker label so the agent knows who said it
+            speaker_prefix = types.Part.from_text(text=f"[Speaker: {speaker_name}]")
+            content = types.Content(role="user", parts=[speaker_prefix] + list(content.parts))
             author = "user"
         event_obj = Event(
             invocation_id=str(uuid.uuid4()),
@@ -103,6 +147,14 @@ root_agent = Agent(
     model=MODEL_NAME,
     instruction="""
 You are acting as a Slack Bot. All your responses must be formatted using Slack-compatible Markdown.
+
+### Speaker Identification
+- Each user message begins with a `[Speaker: <name>]` tag identifying who sent it.
+- Your own previous responses (model messages) do NOT have a speaker tag — those are yours.
+- When summarizing discussions, attributing opinions, or referring to what someone said,
+  always use the speaker's name (e.g., "Tanaka said …", "Suzuki suggested …").
+- If asked to summarize a thread, list each person's key points by name.
+- Do NOT include the `[Speaker: ...]` tag in your replies.
 
 ### Formatting Rules
 - **Headings / emphasis**: Use `*bold*` for section titles or important words.
@@ -154,6 +206,11 @@ async def handle_mention(body, say, client, logger, ack):
         pass
 
     user_content = await _build_content_from_event(event)
+
+    # Prepend speaker identification to the current message
+    speaker_name = await _resolve_user_name(client, user_id)
+    speaker_prefix = types.Part.from_text(text=f"[Speaker: {speaker_name}]")
+    user_content = types.Content(role="user", parts=[speaker_prefix] + list(user_content.parts))
 
     try:
         await session_service.create_session(
