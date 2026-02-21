@@ -11,7 +11,6 @@ fi
 SERVICE_NAME=${SERVICE_NAME:-slack-adk-bot}
 
 REGION=${GOOGLE_CLOUD_LOCATION:-us-central1}
-MODEL_LOCATION=${MODEL_LOCATION:-global}
 
 AR_LOCATION=${AR_LOCATION:-$REGION}
 
@@ -66,14 +65,13 @@ SERVICE_URL=$(gcloud run deploy "${SERVICE_NAME}" \
   --allow-unauthenticated \
   --no-cpu-throttling  \
   --project "${PROJECT_ID}" \
-  --set-env-vars "SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN},SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${MODEL_LOCATION},ALLOWED_SLACK_WORKSPACE=${ALLOWED_SLACK_WORKSPACE:-}" \
+  --set-env-vars "SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN},SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=global,ALLOWED_SLACK_WORKSPACE=${ALLOWED_SLACK_WORKSPACE:-}" \
   --format 'value(status.url)')
 
 echo "--------------------------------------------"
 echo "✅ Deployment completed"
 echo "Service: ${SERVICE_NAME}"
 echo "Region:  ${REGION}"
-echo "Model:   ${MODEL_LOCATION}"
 echo "Image:   ${IMAGE}"
 echo "URL:     ${SERVICE_URL}"
 echo "--------------------------------------------"
