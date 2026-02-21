@@ -21,13 +21,6 @@ from .tools.get_current_datetime import get_current_datetime
 
 # Environment variables
 load_dotenv()
-
-# Override GOOGLE_CLOUD_LOCATION with MODEL_LOCATION if set,
-# so that google.genai.Client uses the model-specific region.
-_model_location = os.environ.get("MODEL_LOCATION")
-if _model_location:
-    os.environ["GOOGLE_CLOUD_LOCATION"] = _model_location
-
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-pro-preview")
