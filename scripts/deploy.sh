@@ -10,7 +10,7 @@ fi
 # ========= Config =========
 SERVICE_NAME=${SERVICE_NAME:-slack-adk-bot}
 
-REGION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+REGION=${CLOUD_RUN_LOCATION:-us-central1}
 
 AR_LOCATION=${AR_LOCATION:-$REGION}
 
