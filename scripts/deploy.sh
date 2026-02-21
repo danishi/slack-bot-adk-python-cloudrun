@@ -10,9 +10,10 @@ fi
 # ========= Config =========
 SERVICE_NAME=${SERVICE_NAME:-slack-adk-bot}
 
-REGION=${GOOGLE_CLOUD_LOCATION:-us-central1}
+CLOUD_RUN_LOCATION=${CLOUD_RUN_LOCATION:-us-central1}
+MODEL_LOCATION=${MODEL_LOCATION:-us-central1}
 
-AR_LOCATION=${AR_LOCATION:-$REGION}
+AR_LOCATION=${AR_LOCATION:-$CLOUD_RUN_LOCATION}
 
 AR_REPO=${AR_REPO:-slack-adk-apps}
 
@@ -60,18 +61,19 @@ gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}"
 # ========= Deploy to Cloud Run =========
 SERVICE_URL=$(gcloud run deploy "${SERVICE_NAME}" \
   --image "${IMAGE}" \
-  --region "${REGION}" \
+  --region "${CLOUD_RUN_LOCATION}" \
   --platform managed \
   --allow-unauthenticated \
   --no-cpu-throttling  \
   --project "${PROJECT_ID}" \
-  --set-env-vars "SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN},SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${REGION},ALLOWED_SLACK_WORKSPACE=${ALLOWED_SLACK_WORKSPACE:-}" \
+  --set-env-vars "SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN},SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET},GOOGLE_GENAI_USE_VERTEXAI=${GOOGLE_GENAI_USE_VERTEXAI},GOOGLE_CLOUD_PROJECT=${PROJECT_ID},GOOGLE_CLOUD_LOCATION=${MODEL_LOCATION},ALLOWED_SLACK_WORKSPACE=${ALLOWED_SLACK_WORKSPACE:-}" \
   --format 'value(status.url)')
 
 echo "--------------------------------------------"
 echo "✅ Deployment completed"
 echo "Service: ${SERVICE_NAME}"
-echo "Region:  ${REGION}"
+echo "Cloud Run Region: ${CLOUD_RUN_LOCATION}"
+echo "Model Region:    ${MODEL_LOCATION}"
 echo "Image:   ${IMAGE}"
 echo "URL:     ${SERVICE_URL}"
 echo "--------------------------------------------"
