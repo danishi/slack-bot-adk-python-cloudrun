@@ -64,6 +64,7 @@ The Agent Development Kit includes a built-in web-based Development UI that you 
 
 1.  **Start the ADK web server:**
     ```bash
+    gcloud auth application-default login
     adk web
     ```
 
