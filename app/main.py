@@ -23,7 +23,7 @@ from .tools.get_current_datetime import get_current_datetime
 load_dotenv()
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.5-flash")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-pro-preview")
 ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
 APP_NAME = os.environ.get("APP_NAME", "slack-bot")
 
@@ -142,8 +142,17 @@ async def handle_mention(body, say, client, logger, ack):
     await ack()
 
     event = body["event"]
-    thread_ts = event.get("thread_ts") or event["ts"]
+    channel = event["channel"]
+    message_ts = event["ts"]
+    thread_ts = event.get("thread_ts") or message_ts
     user_id = event.get("user", "unknown")
+
+    # Add 👀 reaction to indicate the message is being processed
+    try:
+        await client.reactions_add(channel=channel, timestamp=message_ts, name="eyes")
+    except Exception:
+        pass
+
     user_content = await _build_content_from_event(event)
 
     try:
@@ -160,9 +169,9 @@ async def handle_mention(body, say, client, logger, ack):
         await _populate_session_from_thread(
             session=session,
             client=client,
-            channel=event["channel"],
+            channel=channel,
             thread_ts=thread_ts,
-            current_ts=event["ts"],
+            current_ts=message_ts,
         )
 
     try:
@@ -185,6 +194,12 @@ async def handle_mention(body, say, client, logger, ack):
         text=reply_text[:MAX_SLACK_BLOCK_CHARS],
         thread_ts=thread_ts,
     )
+
+    # Add ✅ reaction to indicate the reply is complete
+    try:
+        await client.reactions_add(channel=channel, timestamp=message_ts, name="white_check_mark")
+    except Exception:
+        pass
 
 
 @fastapi_app.post("/slack/events")

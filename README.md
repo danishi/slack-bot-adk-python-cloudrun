@@ -8,6 +8,8 @@ This repository provides a Slack bot backend implemented in Python that uses [Sl
 
 If you want to use the [Google Gen AI SDK](https://googleapis.github.io/python-genai/), please refer to [this repository](https://github.com/danishi/slack-gemini-bot-on-google-cloud)💡
 
+If you want a simpler, lightweight Slack bot without the ADK framework, check out [Nano Banana](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)🍌
+
 ## Features
 - Responds to `@mention` messages in Slack channels.
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
@@ -78,6 +80,7 @@ The Agent Development Kit includes a built-in web-based Development UI that you 
    - `im:history`
    - `mpim:history`
    - `files:read`
+   - `reactions:write`
 3. Install the app to your workspace to obtain `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
 4. Enable **Event Subscriptions** and set the Request URL to `https://<your-cloud-run-service-url>/slack/events`.
 5. Subscribe to bot events: `app_mention`.
