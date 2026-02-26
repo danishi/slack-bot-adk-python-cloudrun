@@ -50,7 +50,7 @@ llms-full.txt      # Extended ADK documentation for LLM context
    ```bash
    cp .env.example .env
    # edit .env and set your Slack and Google Cloud credentials
-   # ALLOWED_SLACK_WORKSPACE is the Slack team ID to allow requests from
+   # ALLOWED_SLACK_WORKSPACES is a comma-separated list of Slack team IDs to allow requests from
    ```
 3. Run the server
    ```bash
@@ -87,6 +87,18 @@ The Agent Development Kit includes a built-in web-based Development UI that you 
 4. Enable **Event Subscriptions** and set the Request URL to `https://<your-cloud-run-service-url>/slack/events`.
 5. Subscribe to bot events: `app_mention`.
 6. Invite the bot to channels where you want to use it.
+
+### Getting Slack Workspace (Team) IDs for `ALLOWED_SLACK_WORKSPACES`
+To restrict the bot to specific Slack workspaces, set `ALLOWED_SLACK_WORKSPACES` in your `.env` with comma-separated team IDs. You can find your workspace's team ID by:
+1. Open your Slack workspace in a browser.
+2. The team ID is the `T`-prefixed value in the URL (e.g., `https://app.slack.com/client/T0123456789/...`).
+3. Or go to your [Slack App settings](https://api.slack.com/apps), select your app, and find the **Team ID** displayed under **App Credentials** on the **Basic Information** page.
+
+Example:
+```
+ALLOWED_SLACK_WORKSPACES="T0123456789,T9876543210"
+```
+If the variable is empty or unset, requests from all workspaces are allowed.
 
 ## Deploy to Cloud Run
 The repository includes a helper script to build the container and deploy to Cloud Run. Ensure your `.env` contains `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` before running:

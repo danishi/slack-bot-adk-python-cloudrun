@@ -24,7 +24,10 @@ load_dotenv()
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-pro-preview")
-ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
+_allowed_ws_raw = os.environ.get("ALLOWED_SLACK_WORKSPACES", "")
+ALLOWED_SLACK_WORKSPACES: set[str] = {
+    w.strip() for w in _allowed_ws_raw.split(",") if w.strip()
+}
 APP_NAME = os.environ.get("APP_NAME", "slack-bot")
 
 # Initialize Slack Bolt AsyncApp
@@ -272,7 +275,7 @@ async def slack_events(req: Request):
         return JSONResponse(content={"challenge": challenge})
 
     team_id = data.get("team_id")
-    if ALLOWED_SLACK_WORKSPACE and team_id != ALLOWED_SLACK_WORKSPACE:
+    if ALLOWED_SLACK_WORKSPACES and team_id not in ALLOWED_SLACK_WORKSPACES:
         return JSONResponse(status_code=403, content={"error": f"{team_id}:workspace_not_allowed"})
     return await handler.handle(req)
 
