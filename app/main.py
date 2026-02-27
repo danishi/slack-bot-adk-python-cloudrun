@@ -26,6 +26,8 @@ SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-pro-preview")
 ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
 APP_NAME = os.environ.get("APP_NAME", "slack-bot")
+REACTION_PROCESSING = os.environ.get("REACTION_PROCESSING", "eyes")
+REACTION_COMPLETED = os.environ.get("REACTION_COMPLETED", "white_check_mark")
 
 # Initialize Slack Bolt AsyncApp
 bolt_app = AsyncApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
@@ -201,7 +203,7 @@ async def handle_mention(body, say, client, logger, ack):
 
     # Add 👀 reaction to indicate the message is being processed
     try:
-        await client.reactions_add(channel=channel, timestamp=message_ts, name="eyes")
+        await client.reactions_add(channel=channel, timestamp=message_ts, name=REACTION_PROCESSING)
     except Exception:
         pass
 
@@ -254,7 +256,7 @@ async def handle_mention(body, say, client, logger, ack):
 
     # Add ✅ reaction to indicate the reply is complete
     try:
-        await client.reactions_add(channel=channel, timestamp=message_ts, name="white_check_mark")
+        await client.reactions_add(channel=channel, timestamp=message_ts, name=REACTION_COMPLETED)
     except Exception:
         pass
 
