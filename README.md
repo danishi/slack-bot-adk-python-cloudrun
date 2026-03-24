@@ -26,6 +26,15 @@ app/
     comedian.py     # ex: Comedian agent implementation
   tools/
     get_current_datetime.py  # ex: Date/time utility tool
+  skills/
+    greeting-skill/          # ex: Greeting skill (file-based ADK Skill)
+      SKILL.md
+      references/
+        greeting_templates.md
+    datetime-skill/          # ex: Datetime skill (file-based ADK Skill)
+      SKILL.md
+      references/
+        default_timezones.md
 scripts/
   deploy.sh         # Helper script to deploy to Cloud Run
 Dockerfile          # Container definition for Cloud Run

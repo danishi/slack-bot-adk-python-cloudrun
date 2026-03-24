@@ -1,5 +1,6 @@
 import os
 import json
+import pathlib
 import re
 import uuid
 from typing import List
@@ -14,6 +15,8 @@ from google.genai import types
 from google.adk.agents import Agent
 from google.adk.events.event import Event
 from google.adk.runners import InMemoryRunner
+from google.adk.skills import load_skill_from_dir
+from google.adk.tools.skill_toolset import SkillToolset
 # from google.adk.tools import google_search
 
 from .agents.comedian import comedian_agent
@@ -144,6 +147,16 @@ async def _populate_session_from_thread(
         await session_service.append_event(session=session, event=event_obj)
 
 
+# Load skills from directory
+_skills_dir = pathlib.Path(__file__).parent / "skills"
+greeting_skill = load_skill_from_dir(_skills_dir / "greeting-skill")
+datetime_skill = load_skill_from_dir(_skills_dir / "datetime-skill")
+
+skill_toolset = SkillToolset(
+    skills=[greeting_skill, datetime_skill],
+    additional_tools=[get_current_datetime],
+)
+
 root_agent = Agent(
     name="slack_bot_agent",
     model=MODEL_NAME,
@@ -168,7 +181,7 @@ You are acting as a Slack Bot. All your responses must be formatted using Slack-
 
 Always structure your response clearly, using these rules so it renders correctly in Slack.""",
     tools=[
-        get_current_datetime,
+        skill_toolset,
     ],
     sub_agents=[
         comedian_agent,
