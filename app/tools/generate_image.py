@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import os
 import threading
 from typing import List
@@ -13,6 +14,11 @@ DEFAULT_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
 # Thread-safe storage for generated images keyed by session_id
 _generated_images: dict[str, List[bytes]] = {}
 _images_lock = threading.Lock()
+
+# ContextVar set by the request handler before running the agent
+current_session_id: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "current_session_id", default="unknown"
+)
 
 
 def get_and_clear_images(session_id: str) -> List[bytes]:
@@ -78,7 +84,7 @@ async def generate_image(prompt: str, tool_context: ToolContext, model: str = ""
         }
 
     # Store images for the main handler to upload to Slack
-    session_id = tool_context.state.get("_session_id", "unknown")
+    session_id = current_session_id.get()
     with _images_lock:
         _generated_images.setdefault(session_id, []).extend(images)
 

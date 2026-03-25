@@ -22,7 +22,7 @@ from google.adk.tools.skill_toolset import SkillToolset
 
 from .agents.comedian import comedian_agent
 from .tools.get_current_datetime import get_current_datetime
-from .tools.generate_image import generate_image, get_and_clear_images
+from .tools.generate_image import generate_image, get_and_clear_images, current_session_id
 
 # Environment variables
 load_dotenv()
@@ -249,9 +249,8 @@ async def handle_mention(body, say, client, logger, ack):
     session = await session_service.get_session(
         app_name=APP_NAME, user_id=user_id, session_id=thread_ts
     )
-    # Store session_id in state so the generate_image tool can key images
-    if session:
-        session.state["_session_id"] = thread_ts
+    # Set context var so generate_image tool can key images by session
+    current_session_id.set(thread_ts)
     if session and not session.events:
         await _populate_session_from_thread(
             session=session,
