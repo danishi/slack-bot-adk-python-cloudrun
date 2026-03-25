@@ -1,4 +1,3 @@
-import io
 import os
 import json
 import pathlib
@@ -290,7 +289,7 @@ async def handle_mention(body, say, client, logger, ack):
                 thread_ts=thread_ts,
                 filename=f"generated-image-{idx}.png",
                 title=f"Generated image {idx}",
-                file=io.BytesIO(image_bytes),
+                content=image_bytes,
             )
         except Exception:
             logger.exception("Failed to upload generated image %d", idx)
