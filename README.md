@@ -13,6 +13,10 @@ If you want a simpler, lightweight Slack bot without the ADK framework, check ou
 ## Features
 - Responds to `@mention` messages in Slack channels.
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
+- **Image generation** via `generate_image` tool using Gemini image generation models:
+  - `gemini-3-pro-image-preview` ([Nanobanana Pro](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — higher quality
+  - `gemini-3.1-flash-image-preview` ([Nanobanana 2](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — faster generation
+  - Generated images are automatically uploaded to the Slack thread.
 - Maintains conversation context by retrieving prior messages in a thread and sending them as conversation history to Gemini.
 - Formats responses using Slack-compatible Markdown for rich text output.
 - FastAPI-based web server suitable for Cloud Run.
@@ -25,6 +29,7 @@ app/
   agents/
     comedian.py     # ex: Comedian agent implementation
   tools/
+    generate_image.py        # ex: Image generation tool (Nanobanana Pro / Nanobanana 2)
     get_current_datetime.py  # ex: Date/time utility tool
   skills/
     greeting-skill/          # ex: Greeting skill (file-based ADK Skill)
@@ -90,6 +95,7 @@ The Agent Development Kit includes a built-in web-based Development UI that you 
    - `im:history`
    - `mpim:history`
    - `files:read`
+   - `files:write`
    - `reactions:write`
    - `users:read`
 3. Install the app to your workspace to obtain `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
