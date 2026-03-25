@@ -156,7 +156,7 @@ datetime_skill = load_skill_from_dir(_skills_dir / "datetime-skill")
 
 skill_toolset = SkillToolset(
     skills=[greeting_skill, datetime_skill],
-    additional_tools=[get_current_datetime, generate_image],
+    additional_tools=[get_current_datetime],
 )
 
 root_agent = Agent(
@@ -193,6 +193,7 @@ You are acting as a Slack Bot. All your responses must be formatted using Slack-
 Always structure your response clearly, using these rules so it renders correctly in Slack.""",
     tools=[
         skill_toolset,
+        generate_image,
     ],
     sub_agents=[
         comedian_agent,
