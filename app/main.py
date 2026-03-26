@@ -20,6 +20,7 @@ from google.adk.tools.skill_toolset import SkillToolset
 # from google.adk.tools import google_search
 
 from .agents.comedian import comedian_agent
+from .agents.web_search_agent import web_search_agent, url_fetch_agent
 from .tools.get_current_datetime import get_current_datetime
 from .tools.generate_image import generate_image, get_and_clear_images, current_session_id
 
@@ -196,6 +197,8 @@ Always structure your response clearly, using these rules so it renders correctl
     ],
     sub_agents=[
         comedian_agent,
+        web_search_agent,
+        url_fetch_agent,
     ],
 )
 
