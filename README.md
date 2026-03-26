@@ -11,7 +11,7 @@ If you want to use the [Google Gen AI SDK](https://googleapis.github.io/python-g
 If you want a simpler, lightweight Slack bot without the ADK framework, check out [Nano Banana](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)🍌
 
 ## Features
-- Responds to `@mention` messages in Slack channels.
+- Responds to `@mention` messages in Slack channels and direct messages (DMs).
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
 - **Web search** via `web_search_agent` (Google Search) and `url_fetch_agent` (URL content retrieval) using `AgentTool`. Allows the bot to look up live web information and fetch page content on demand.
 - **Image generation** via `generate_image` tool using Gemini image generation models:
@@ -102,8 +102,8 @@ The Agent Development Kit includes a built-in web-based Development UI that you 
    - `users:read`
 3. Install the app to your workspace to obtain `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
 4. Enable **Event Subscriptions** and set the Request URL to `https://<your-cloud-run-service-url>/slack/events`.
-5. Subscribe to bot events: `app_mention`.
-6. Invite the bot to channels where you want to use it.
+5. Subscribe to bot events: `app_mention`, `message.im`.
+6. Invite the bot to channels where you want to use it. For DMs, simply open a direct message with the bot.
 
 ## Deploy to Cloud Run
 The repository includes a helper script to build the container and deploy to Cloud Run. Ensure your `.env` contains `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET` before running:
