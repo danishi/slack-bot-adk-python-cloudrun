@@ -17,20 +17,13 @@ web_search_agent = Agent(
         )
     ),
     description=(
-        "An agent that searches the web for information. "
-        "Looks up details such as official name, website, address, phone number, and industry about companies or organizations."
+        "An agent that searches the web for up-to-date information on any topic. "
+        "Use this when the user asks about recent events, facts, documentation, or anything that may require live web data."
     ),
     instruction="""\
 You are a web search specialist agent.
-Search the web for information about the requested topic, company, or organization and return:
-- Official name
-- Official website URL
-- Headquarters address
-- Main phone number
-- Industry / business description
-- English name or abbreviation (if available)
-
-Return the results in a structured format. If any information cannot be found, explicitly note it as "Unknown".
+Search the web for the requested information and return clear, accurate, and well-structured results.
+Include source URLs where possible so the user can verify the information.
 If detailed information from a specific URL is needed, ask the url_fetch_agent to retrieve it.
 """,
     tools=[
@@ -48,7 +41,7 @@ url_fetch_agent = Agent(
     ),
     description=(
         "An agent that fetches and extracts content from web pages. "
-        "Retrieves page content from a given URL and extracts the required information."
+        "Use this when detailed information from a specific URL is needed."
     ),
     instruction="""\
 You are a URL content retrieval specialist agent.

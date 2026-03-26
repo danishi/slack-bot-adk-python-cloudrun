@@ -17,6 +17,7 @@ from google.adk.events.event import Event
 from google.adk.runners import InMemoryRunner
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
+from google.adk.tools.agent_tool import AgentTool
 # from google.adk.tools import google_search
 
 from .agents.comedian import comedian_agent
@@ -194,11 +195,11 @@ Always structure your response clearly, using these rules so it renders correctl
     tools=[
         skill_toolset,
         generate_image,
+        AgentTool(agent=web_search_agent),
+        AgentTool(agent=url_fetch_agent),
     ],
     sub_agents=[
         comedian_agent,
-        web_search_agent,
-        url_fetch_agent,
     ],
 )
 

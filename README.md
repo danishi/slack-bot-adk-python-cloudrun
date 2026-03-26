@@ -13,6 +13,7 @@ If you want a simpler, lightweight Slack bot without the ADK framework, check ou
 ## Features
 - Responds to `@mention` messages in Slack channels.
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
+- **Web search** via `web_search_agent` (Google Search) and `url_fetch_agent` (URL content retrieval) using `AgentTool`. Allows the bot to look up live web information and fetch page content on demand.
 - **Image generation** via `generate_image` tool using Gemini image generation models:
   - `gemini-3-pro-image-preview` ([Nanobanana Pro](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — higher quality
   - `gemini-3.1-flash-image-preview` ([Nanobanana 2](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — faster generation
@@ -27,7 +28,8 @@ If you want a simpler, lightweight Slack bot without the ADK framework, check ou
 app/
   main.py           # FastAPI app and Slack Bolt handlers
   agents/
-    comedian.py     # ex: Comedian agent implementation
+    comedian.py          # ex: Comedian agent implementation
+    web_search_agent.py  # ex: Web search & URL fetch agents (AgentTool)
   tools/
     generate_image.py        # ex: Image generation tool (Nanobanana Pro / Nanobanana 2)
     get_current_datetime.py  # ex: Date/time utility tool
