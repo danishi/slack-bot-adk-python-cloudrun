@@ -218,12 +218,8 @@ def _build_slack_blocks_from_text(text: str) -> List[dict]:
     ] or [{"type": "section", "text": {"type": "mrkdwn", "text": ""}}]
 
 
-@bolt_app.event("app_mention")
-async def handle_mention(body, say, client, logger, ack):
-    # Ack as soon as possible to avoid Slack retries that can cause duplicated responses
-    await ack()
-
-    event = body["event"]
+async def _handle_message(event, say, client, logger):
+    """Shared handler for both app_mention and DM message events."""
     channel = event["channel"]
     message_ts = event["ts"]
     thread_ts = event.get("thread_ts") or message_ts
@@ -303,6 +299,25 @@ async def handle_mention(body, say, client, logger, ack):
         await client.reactions_add(channel=channel, timestamp=message_ts, name=REACTION_COMPLETED)
     except Exception:
         pass
+
+
+@bolt_app.event("app_mention")
+async def handle_mention(body, say, client, logger, ack):
+    await ack()
+    await _handle_message(body["event"], say, client, logger)
+
+
+@bolt_app.event("message")
+async def handle_direct_message(body, say, client, logger, ack):
+    await ack()
+    event = body["event"]
+    # Only handle DMs (channel_type "im"), skip other message events
+    if event.get("channel_type") != "im":
+        return
+    # Ignore bot's own messages and message subtypes (edits, joins, etc.)
+    if event.get("bot_id") or event.get("subtype"):
+        return
+    await _handle_message(event, say, client, logger)
 
 
 @fastapi_app.post("/slack/events")
