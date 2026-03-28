@@ -80,7 +80,8 @@ async def generate_image(prompt: str, tool_context: ToolContext, model: str = ""
     if not images:
         return {
             "status": "no_image_generated",
-            "text": "\n".join(text_parts) if text_parts else "No image was generated.",
+            "text": "\n".join(text_parts) if text_parts else "",
+            "note": "No image was produced. Tell the user in their language.",
         }
 
     # Store images for the main handler to upload to Slack
@@ -92,5 +93,6 @@ async def generate_image(prompt: str, tool_context: ToolContext, model: str = ""
         "status": "success",
         "model": image_model,
         "image_count": len(images),
-        "text": "\n".join(text_parts) if text_parts else f"{len(images)} image(s) generated successfully.",
+        "text": "\n".join(text_parts) if text_parts else "",
+        "note": f"{len(images)} image(s) generated. Inform the user in their language.",
     }
