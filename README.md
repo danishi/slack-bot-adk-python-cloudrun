@@ -129,3 +129,5 @@ After deployment, configure the Slack app's event subscription URL to the Cloud 
 ## Related Repository
 
 If you want to build a Slack bot that integrates with Salesforce using the ADK framework, check out [Slack Salesforce ADK Agent](https://github.com/danishi/slack-salesforce-adk-agent)🤝
+
+If you want to build a Slack bot that integrates with HubSpot using the ADK framework, check out [Slack HubSpot ADK Agent](https://github.com/danishi/slack-hubspot-adk-agent)🤝
