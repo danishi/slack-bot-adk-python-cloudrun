@@ -126,6 +126,9 @@ The script will:
 
 After deployment, configure the Slack app's event subscription URL to the Cloud Run service URL.
 
-## Related Repository
+## Related Repositories
 
-If you want to build a Slack bot that integrates with Salesforce using the ADK framework, check out [Slack Salesforce ADK Agent](https://github.com/danishi/slack-salesforce-adk-agent)🤝
+Slack bots integrating with external services using the ADK framework:
+
+- [Slack Salesforce ADK Agent](https://github.com/danishi/slack-salesforce-adk-agent)🤝
+- [Slack HubSpot ADK Agent](https://github.com/danishi/slack-hubspot-adk-agent)🤝
