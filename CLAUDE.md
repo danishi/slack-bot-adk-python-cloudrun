@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Conventions
+
+- **Write everything in English**: commit messages, pull request titles/descriptions, and code comments must all be in English, regardless of the language used in conversation.
+- Commit messages use the imperative mood ("Add feature", not "Added feature") with the first line kept under 72 characters.
+
 ## Overview
 
 A Slack bot backend built with **Slack Bolt** (async) + **FastAPI**, powered by Google's **Agent Development Kit (ADK)** running Vertex AI Gemini models. It handles `@mention` and DM messages with multimodal input (text, image, PDF, text file, video, audio), maintains conversation context per Slack thread, can search the web, fetch URLs, and generate images. Designed to run on Cloud Run.
