@@ -9,7 +9,7 @@ from google.adk.tools import ToolContext
 from google.genai.types import GenerateContentConfig, Modality
 
 # Default image generation model (Nanobanana 2)
-DEFAULT_IMAGE_MODEL = "gemini-3.1-flash-image-preview"
+DEFAULT_IMAGE_MODEL = "gemini-3.1-flash-image"
 
 # Thread-safe storage for generated images keyed by session_id
 _generated_images: dict[str, List[bytes]] = {}
@@ -35,8 +35,8 @@ async def generate_image(prompt: str, tool_context: ToolContext, model: str = ""
     Args:
         prompt: A detailed description of the image to generate.
         model: The model to use for image generation.
-               Use "gemini-3-pro-image-preview" (Nanobanana Pro) for higher quality.
-               Use "gemini-3.1-flash-image-preview" (Nanobanana 2) for faster generation.
+               Use "gemini-3-pro-image" (Nanobanana Pro) for higher quality.
+               Use "gemini-3.1-flash-image" (Nanobanana 2) for faster generation.
                Defaults to Nanobanana 2 if not specified.
     """
     image_model = model if model else os.environ.get(

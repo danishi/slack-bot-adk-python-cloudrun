@@ -29,7 +29,7 @@ from .tools.generate_image import generate_image, get_and_clear_images, current_
 load_dotenv()
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-pro-preview")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.5-flash")
 ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
 APP_NAME = os.environ.get("APP_NAME", "slack-bot")
 REACTION_PROCESSING = os.environ.get("REACTION_PROCESSING", "eyes")
@@ -181,8 +181,8 @@ You are acting as a Slack Bot. All your responses must be formatted using Slack-
 ### Image Generation
 - When the user asks you to create, draw, generate, or design an image, use the `generate_image` tool.
 - Available models:
-  - `gemini-3.1-flash-image-preview` (Nanobanana 2): Fast generation (default)
-  - `gemini-3-pro-image-preview` (Nanobanana Pro): Higher quality
+  - `gemini-3.1-flash-image` (Nanobanana 2): Fast generation (default)
+  - `gemini-3-pro-image` (Nanobanana Pro): Higher quality
 - If the user requests a specific model or quality level, set the `model` parameter accordingly.
 - Write a detailed, descriptive prompt for best results.
 - IMPORTANT: Write the image generation prompt in the same language the user used. For example, if the user asks in Japanese, write the prompt in Japanese. This ensures the generated image contains text and cultural elements appropriate to the user's language.
