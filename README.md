@@ -11,6 +11,7 @@ If you want to use the [Google Gen AI SDK](https://googleapis.github.io/python-g
 If you want a simpler, lightweight Slack bot without the ADK framework, check out [Nano Banana](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)🍌
 
 ## Features
+- Powered by Vertex AI Gemini via the ADK. Verified working with `gemini-3.5-flash` (the default `MODEL_NAME`); any other Gemini model can be used by setting `MODEL_NAME`.
 - Responds to `@mention` messages in Slack channels and direct messages (DMs).
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
 - **Web search** via `web_search_agent` (Google Search) and `url_fetch_agent` (URL content retrieval) using `AgentTool`. Allows the bot to look up live web information and fetch page content on demand.
