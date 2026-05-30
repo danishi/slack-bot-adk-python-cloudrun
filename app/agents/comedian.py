@@ -5,7 +5,7 @@ from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.1-pro-preview")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.5-flash")
 
 comedian_agent = Agent(
     model=MODEL_NAME,

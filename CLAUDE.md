@@ -65,14 +65,14 @@ The entire request lifecycle lives in `app/main.py`. The flow:
 ## Configuration
 
 All config is environment variables (see `.env.example`). Notable ones:
-- `MODEL_NAME` (default `gemini-3.1-pro-preview`) — used by root and all sub-agents.
-- `IMAGE_MODEL_NAME` (default `gemini-3.1-flash-image-preview`, "Nanobanana 2") — the agent can override per-call to `gemini-3-pro-image-preview` ("Nanobanana Pro") for higher quality.
+- `MODEL_NAME` (default `gemini-3.5-flash`) — used by root and all sub-agents.
+- `IMAGE_MODEL_NAME` (default `gemini-3.1-flash-image`, "Nanobanana 2") — the agent can override per-call to `gemini-3-pro-image` ("Nanobanana Pro") for higher quality.
 - `GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` (`global`) — Vertex AI auth.
 - `ALLOWED_SLACK_WORKSPACE` — Slack team ID allowlist (omit to allow all).
 - `REACTION_PROCESSING` / `REACTION_COMPLETED` — reaction emoji names.
 
 ## Notes
 
-- `llms.txt` / `llms-full.txt` are bundled ADK documentation for LLM reference — they are not source code.
+- `llms.txt` / `llms-full.txt` are bundled ADK documentation for LLM reference — they are not source code. They are snapshots pulled from the [adk-python](https://github.com/google/adk-python) `release/v2.1.0` branch: `llms.txt` is a concise index/overview of the ADK and `llms-full.txt` is the full documentation corpus. Consult them as the authoritative ADK reference (matching the pinned ADK version) before reaching for external web docs, and refresh both files from the same branch when the ADK dependency is bumped.
 - Sessions are in-memory (`InMemoryRunner`); restarting the service loses live sessions, but thread history is rehydrated from Slack on the next message.
 - Adding a new ADK skill: create `app/skills/<name>/SKILL.md` (+ optional `references/`), then register it in the `SkillToolset` in `app/main.py`.
