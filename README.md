@@ -51,7 +51,7 @@ llms-full.txt      # Extended ADK documentation for LLM context
 ```
 
 ## Prerequisites
-- Python 3.13
+- Python 3.14
 - [Google Cloud SDK](https://cloud.google.com/sdk) with `gcloud` authenticated
 - Slack workspace admin privileges
 
