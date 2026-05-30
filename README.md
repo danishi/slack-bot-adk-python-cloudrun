@@ -126,3 +126,7 @@ The script will:
 3. Set the required environment variables on the service.
 
 After deployment, configure the Slack app's event subscription URL to the Cloud Run service URL.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=danishi/slack-bot-adk-python-cloudrun&type=Month)](https://star-history.com/#danishi/slack-bot-adk-python-cloudrun&Month)
