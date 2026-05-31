@@ -2,7 +2,7 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/danishi/slack-bot-adk-python-cloudrun)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)
 
-<img width="1024" alt="image" src="https://github.com/user-attachments/assets/815339c0-5299-498e-8372-d03acc442830" />
+<img width="2172" height="724" alt="image" src="https://github.com/user-attachments/assets/506de9ca-34ac-4d96-8356-40610c559829" />
 
 This repository provides a Slack bot backend implemented in Python that uses [Slack Bolt](https://slack.dev/bolt-python) and Google Cloud's [Gemini Enterprise Agent Platform](https://cloud.google.com/products/gemini-enterprise-agent-platform) (formerly Vertex AI) Gemini model via the [Agent Development Kit](https://google.github.io/adk-docs/). The bot responds to text, images, PDFs, plain text files, videos, and audio messages, while maintaining conversation context within Slack threads. It is designed to run on [Cloud Run](https://cloud.google.com/run).
 
