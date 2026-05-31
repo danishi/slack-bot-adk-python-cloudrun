@@ -2,6 +2,7 @@ import os
 import json
 import pathlib
 import re
+import sys
 import uuid
 from typing import List
 
@@ -18,10 +19,14 @@ from google.adk.runners import InMemoryRunner
 from google.adk.skills import load_skill_from_dir
 from google.adk.tools.skill_toolset import SkillToolset
 from google.adk.tools.agent_tool import AgentTool
+from google.adk.tools.mcp_tool.mcp_toolset import McpToolset
+from google.adk.tools.mcp_tool.mcp_session_manager import StdioConnectionParams
+from mcp import StdioServerParameters
 # from google.adk.tools import google_search
 
 from .agents.comedian import comedian_agent
 from .agents.web_search_agent import web_search_agent, url_fetch_agent
+from .agents.mock_service_agent import create_mock_service_agent
 from .tools.get_current_datetime import get_current_datetime
 from .tools.generate_image import generate_image, get_and_clear_images, current_session_id
 
@@ -31,9 +36,66 @@ SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
 MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.5-flash")
 ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
+ALLOWED_SLACK_USERS = os.environ.get("ALLOWED_SLACK_USERS", "")
+ALLOWED_SLACK_BOTS = os.environ.get("ALLOWED_SLACK_BOTS", "")
 APP_NAME = os.environ.get("APP_NAME", "slack-bot")
 REACTION_PROCESSING = os.environ.get("REACTION_PROCESSING", "eyes")
 REACTION_COMPLETED = os.environ.get("REACTION_COMPLETED", "white_check_mark")
+
+# Parse allowed sender IDs (comma-separated). Empty set = allow all human users.
+_allowed_user_ids: set[str] = {
+    uid.strip() for uid in ALLOWED_SLACK_USERS.split(",") if uid.strip()
+}
+# Bot sender IDs (e.g. USLACKBOT for Slack reminders) allowed to invoke the bot.
+# Bots are never allowed implicitly — they must be listed here.
+_allowed_bot_user_ids: set[str] = {
+    bid.strip() for bid in ALLOWED_SLACK_BOTS.split(",") if bid.strip()
+}
+
+
+def _is_sender_allowed(event: dict) -> bool:
+    """Return True if the message sender is allowed to invoke the bot.
+
+    - Human users: allowed when ``ALLOWED_SLACK_USERS`` is empty, otherwise the
+      sender's user ID must be listed.
+    - Bots (including Slackbot reminders, which arrive as ``USLACKBOT``): only
+      allowed when their user ID is listed in ``ALLOWED_SLACK_BOTS``. The bot's
+      own messages carry a ``bot_id`` and are not listed, so they are dropped —
+      this prevents reply loops.
+    """
+    user_id = event.get("user", "")
+    is_bot = bool(event.get("bot_id")) or user_id in _allowed_bot_user_ids
+    if is_bot:
+        return bool(user_id) and user_id in _allowed_bot_user_ids
+    return (not _allowed_user_ids) or (user_id in _allowed_user_ids)
+
+
+# Message posted back to a human user who is not on the allowlist.
+# Falls back to the default when the env var is unset or empty.
+ACCESS_DENIED_MESSAGE = os.environ.get("ACCESS_DENIED_MESSAGE") or (
+    "Sorry, you are not allowed to use this bot. "
+    "Please contact the workspace administrator if you need access."
+)
+
+
+async def _deny_if_not_allowed(event: dict, say) -> bool:
+    """Gate a message; return True if the sender is not allowed to proceed.
+
+    Human users who are not allowlisted get a permission-denied reply so they
+    are not left wondering why the bot is silent. Messages carrying a ``bot_id``
+    (the bot's own replies, other apps, Slackbot) are dropped silently to avoid
+    reply loops and channel noise.
+    """
+    if _is_sender_allowed(event):
+        return False
+    if not event.get("bot_id"):
+        thread_ts = event.get("thread_ts") or event.get("ts")
+        try:
+            await say(text=ACCESS_DENIED_MESSAGE, thread_ts=thread_ts)
+        except Exception:
+            pass
+    return True
+
 
 # Initialize Slack Bolt AsyncApp
 bolt_app = AsyncApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
@@ -160,6 +222,21 @@ skill_toolset = SkillToolset(
     additional_tools=[get_current_datetime],
 )
 
+# MCP Toolset for the sample mock service — assigned to mock_service_agent.
+# The server is started as a stdio subprocess and exposes the user-directory tools.
+_mock_service_mcp = McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "mcp_servers.mock_service_server"],
+            env={**os.environ},
+        ),
+        timeout=30.0,
+    ),
+)
+
+mock_service_agent = create_mock_service_agent(tools=[_mock_service_mcp])
+
 root_agent = Agent(
     name="slack_bot_agent",
     model=MODEL_NAME,
@@ -188,6 +265,12 @@ You are acting as a Slack Bot. All your responses must be formatted using Slack-
 - IMPORTANT: Write the image generation prompt in the same language the user used. For example, if the user asks in Japanese, write the prompt in Japanese. This ensures the generated image contains text and cultural elements appropriate to the user's language.
 - Generated images will be automatically uploaded to the Slack thread.
 
+### User Directory Lookups
+- When the user asks to list people, find a person, or look up someone's details
+  (email, phone, company, address), delegate to the `mock_service_agent`.
+- This is a sample integration that reaches an external service over MCP, so the
+  data is demo data — do not present it as authoritative.
+
 ### Formatting Rules
 - **Headings / emphasis**: Use `*bold*` for section titles or important words.
 - *Italics*: Use `_underscores_` for emphasis when needed.
@@ -205,6 +288,7 @@ Always structure your response clearly, using these rules so it renders correctl
     ],
     sub_agents=[
         comedian_agent,
+        mock_service_agent,
     ],
 )
 
@@ -309,7 +393,12 @@ async def _handle_message(event, say, client, logger):
 @bolt_app.event("app_mention")
 async def handle_mention(body, say, client, logger, ack):
     await ack()
-    await _handle_message(body["event"], say, client, logger)
+    event = body["event"]
+    # Enforce the user / bot allowlists (empty user list = allow all humans).
+    # Disallowed humans get a reply; disallowed bots are dropped silently.
+    if await _deny_if_not_allowed(event, say):
+        return
+    await _handle_message(event, say, client, logger)
 
 
 @bolt_app.event("message")
@@ -319,8 +408,15 @@ async def handle_direct_message(body, say, client, logger, ack):
     # Only handle DMs (channel_type "im"), skip other message events
     if event.get("channel_type") != "im":
         return
-    # Ignore bot's own messages and message subtypes (edits, joins, etc.)
-    if event.get("bot_id") or event.get("subtype"):
+    # Ignore message subtypes (edits, joins, etc.), but keep "bot_message" so
+    # Slack reminders and other allowlisted bots can reach the bot.
+    subtype = event.get("subtype")
+    if subtype and subtype != "bot_message":
+        return
+    # Enforce the user / bot allowlists. Disallowed humans get a reply; the bot's
+    # own messages and other bots carry a bot_id and are dropped silently
+    # (prevents reply loops).
+    if await _deny_if_not_allowed(event, say):
         return
     await _handle_message(event, say, client, logger)
 
