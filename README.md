@@ -144,6 +144,8 @@ Three independent, optional allowlists gate who can reach the bot:
 | `ALLOWED_SLACK_BOTS` | No bots allowed (bot messages ignored) | Comma-separated bot user IDs (e.g. `USLACKBOT`) that may invoke the bot |
 
 Notes:
+- A **disallowed human** user gets a permission-denied reply (in-thread) so they know why the bot is not responding. Customize it with `ACCESS_DENIED_MESSAGE` (empty = built-in default).
+- **Disallowed bots** (anything carrying a `bot_id`, including Slackbot and the bot's own replies) are ignored silently to avoid reply loops and channel noise.
 - The bot's own messages carry a `bot_id` and are never allowlisted, so reply loops are prevented automatically.
 - `ALLOWED_SLACK_BOTS` is what makes [scheduled execution via Slack reminders](#use-cases) possible — `USLACKBOT` posts reminder messages, so it must be listed.
 - To find a user ID, open the member's profile → **⋮** → **Copy member ID**, or call the Slack API:

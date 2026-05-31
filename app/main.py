@@ -69,6 +69,34 @@ def _is_sender_allowed(event: dict) -> bool:
         return bool(user_id) and user_id in _allowed_bot_user_ids
     return (not _allowed_user_ids) or (user_id in _allowed_user_ids)
 
+
+# Message posted back to a human user who is not on the allowlist.
+# Falls back to the default when the env var is unset or empty.
+ACCESS_DENIED_MESSAGE = os.environ.get("ACCESS_DENIED_MESSAGE") or (
+    "Sorry, you are not allowed to use this bot. "
+    "Please contact the workspace administrator if you need access."
+)
+
+
+async def _deny_if_not_allowed(event: dict, say) -> bool:
+    """Gate a message; return True if the sender is not allowed to proceed.
+
+    Human users who are not allowlisted get a permission-denied reply so they
+    are not left wondering why the bot is silent. Messages carrying a ``bot_id``
+    (the bot's own replies, other apps, Slackbot) are dropped silently to avoid
+    reply loops and channel noise.
+    """
+    if _is_sender_allowed(event):
+        return False
+    if not event.get("bot_id"):
+        thread_ts = event.get("thread_ts") or event.get("ts")
+        try:
+            await say(text=ACCESS_DENIED_MESSAGE, thread_ts=thread_ts)
+        except Exception:
+            pass
+    return True
+
+
 # Initialize Slack Bolt AsyncApp
 bolt_app = AsyncApp(token=SLACK_BOT_TOKEN, signing_secret=SLACK_SIGNING_SECRET)
 handler = AsyncSlackRequestHandler(bolt_app)
@@ -367,7 +395,8 @@ async def handle_mention(body, say, client, logger, ack):
     await ack()
     event = body["event"]
     # Enforce the user / bot allowlists (empty user list = allow all humans).
-    if not _is_sender_allowed(event):
+    # Disallowed humans get a reply; disallowed bots are dropped silently.
+    if await _deny_if_not_allowed(event, say):
         return
     await _handle_message(event, say, client, logger)
 
@@ -384,9 +413,10 @@ async def handle_direct_message(body, say, client, logger, ack):
     subtype = event.get("subtype")
     if subtype and subtype != "bot_message":
         return
-    # Enforce the user / bot allowlists. The bot's own messages carry a bot_id
-    # and are not allowlisted, so they are dropped here (prevents reply loops).
-    if not _is_sender_allowed(event):
+    # Enforce the user / bot allowlists. Disallowed humans get a reply; the bot's
+    # own messages and other bots carry a bot_id and are dropped silently
+    # (prevents reply loops).
+    if await _deny_if_not_allowed(event, say):
         return
     await _handle_message(event, say, client, logger)
 

@@ -42,7 +42,7 @@ The entire request lifecycle lives in `app/main.py`. The flow:
    - Enforces a workspace allowlist via `ALLOWED_SLACK_WORKSPACE` (403 if `team_id` mismatches).
    - Only then delegates to the Bolt `AsyncSlackRequestHandler`.
 2. **Bolt event handlers** — `handle_mention` (app_mention) and `handle_direct_message` (DMs only, `channel_type == "im"`) both `ack()` immediately, gate the sender via `_is_sender_allowed`, then call the shared `_handle_message`. The DM handler drops human message subtypes (edits/joins) but keeps `bot_message` so allowlisted bots (e.g. Slackbot reminders) get through.
-   - **Access control** — `_is_sender_allowed` checks two allowlists: `ALLOWED_SLACK_USERS` (empty = allow all humans) and `ALLOWED_SLACK_BOTS` (empty = no bots; bots are never allowed implicitly). The bot's own messages carry a `bot_id` and aren't allowlisted, so reply loops are prevented. Listing `USLACKBOT` in `ALLOWED_SLACK_BOTS` is what lets Slack reminders trigger scheduled runs.
+   - **Access control** — `_is_sender_allowed` checks two allowlists: `ALLOWED_SLACK_USERS` (empty = allow all humans) and `ALLOWED_SLACK_BOTS` (empty = no bots; bots are never allowed implicitly). The bot's own messages carry a `bot_id` and aren't allowlisted, so reply loops are prevented. Listing `USLACKBOT` in `ALLOWED_SLACK_BOTS` is what lets Slack reminders trigger scheduled runs. `_deny_if_not_allowed` wraps the check at the handler boundary: a disallowed **human** gets the `ACCESS_DENIED_MESSAGE` reply in-thread, while anything with a `bot_id` is dropped silently (no loops/noise).
 3. **`_handle_message`** — the core orchestration:
    - Adds the 👀 reaction (`REACTION_PROCESSING`), runs the agent, posts the reply, uploads any generated images, adds the ✅ reaction (`REACTION_COMPLETED`).
    - Uses `thread_ts` as the **ADK session id**, so each Slack thread is one persistent conversation.
@@ -73,6 +73,7 @@ All config is environment variables (see `.env.example`). Notable ones:
 - `ALLOWED_SLACK_WORKSPACE` — Slack team ID allowlist (omit to allow all).
 - `ALLOWED_SLACK_USERS` — comma-separated user IDs allowed to invoke (empty = allow all humans).
 - `ALLOWED_SLACK_BOTS` — comma-separated bot user IDs allowed to invoke, e.g. `USLACKBOT` for Slack reminders (empty = no bots).
+- `ACCESS_DENIED_MESSAGE` — reply sent to a disallowed human user (empty = built-in default).
 - `REACTION_PROCESSING` / `REACTION_COMPLETED` — reaction emoji names.
 
 The sample MCP server's backend URL is a hardcoded literal (`MOCK_API_BASE_URL`) in `mcp_servers/mock_service_server.py`, not an env var.
