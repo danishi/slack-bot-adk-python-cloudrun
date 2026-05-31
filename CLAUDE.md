@@ -41,7 +41,8 @@ The entire request lifecycle lives in `app/main.py`. The flow:
    - Echoes the URL-verification `challenge`.
    - Enforces a workspace allowlist via `ALLOWED_SLACK_WORKSPACE` (403 if `team_id` mismatches).
    - Only then delegates to the Bolt `AsyncSlackRequestHandler`.
-2. **Bolt event handlers** — `handle_mention` (app_mention) and `handle_direct_message` (DMs only, `channel_type == "im"`, skipping bot/subtype messages) both `ack()` immediately, then call the shared `_handle_message`.
+2. **Bolt event handlers** — `handle_mention` (app_mention) and `handle_direct_message` (DMs only, `channel_type == "im"`) both `ack()` immediately, gate the sender via `_is_sender_allowed`, then call the shared `_handle_message`. The DM handler drops human message subtypes (edits/joins) but keeps `bot_message` so allowlisted bots (e.g. Slackbot reminders) get through.
+   - **Access control** — `_is_sender_allowed` checks two allowlists: `ALLOWED_SLACK_USERS` (empty = allow all humans) and `ALLOWED_SLACK_BOTS` (empty = no bots; bots are never allowed implicitly). The bot's own messages carry a `bot_id` and aren't allowlisted, so reply loops are prevented. Listing `USLACKBOT` in `ALLOWED_SLACK_BOTS` is what lets Slack reminders trigger scheduled runs.
 3. **`_handle_message`** — the core orchestration:
    - Adds the 👀 reaction (`REACTION_PROCESSING`), runs the agent, posts the reply, uploads any generated images, adds the ✅ reaction (`REACTION_COMPLETED`).
    - Uses `thread_ts` as the **ADK session id**, so each Slack thread is one persistent conversation.
@@ -53,7 +54,8 @@ The entire request lifecycle lives in `app/main.py`. The flow:
 - **`SkillToolset`** — file-based ADK skills loaded from `app/skills/` via `load_skill_from_dir` (`greeting-skill`, `datetime-skill`). The `get_current_datetime` tool is passed as `additional_tools`; a skill can also declare tools via `metadata.adk_additional_tools` in its `SKILL.md` frontmatter (see `datetime-skill`).
 - **`generate_image`** tool (`app/tools/generate_image.py`).
 - **`AgentTool`-wrapped sub-agents** `web_search_agent` (Google Search) and `url_fetch_agent` (url_context) from `app/agents/web_search_agent.py`.
-- **`sub_agents`**: `comedian_agent` (`app/agents/comedian.py`) — a true delegated sub-agent, not an AgentTool.
+- **`sub_agents`**: `comedian_agent` (`app/agents/comedian.py`) and `mock_service_agent` (`app/agents/mock_service_agent.py`) — true delegated sub-agents, not AgentTools.
+- **MCP integration** — `mock_service_agent` is built via `create_mock_service_agent(tools=[_mock_service_mcp])`. `_mock_service_mcp` is an ADK `McpToolset` that launches `mcp_servers/mock_service_server.py` as a stdio subprocess (`python -m mcp_servers.mock_service_server`). The FastMCP server wraps the JSONPlaceholder mock API (hardcoded `MOCK_API_BASE_URL` literal in `mock_service_server.py`) and exposes `list_users` / `get_user`. This is the template for swapping in a real backend service over MCP. Because the server runs as a subprocess, `mcp_servers/` must be COPYed into the Docker image.
 
 ### Key cross-cutting patterns
 
@@ -69,7 +71,13 @@ All config is environment variables (see `.env.example`). Notable ones:
 - `IMAGE_MODEL_NAME` (default `gemini-3.1-flash-image`, "Nanobanana 2") — the agent can override per-call to `gemini-3-pro-image` ("Nanobanana Pro") for higher quality.
 - `GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` (`global`) — Vertex AI auth.
 - `ALLOWED_SLACK_WORKSPACE` — Slack team ID allowlist (omit to allow all).
+- `ALLOWED_SLACK_USERS` — comma-separated user IDs allowed to invoke (empty = allow all humans).
+- `ALLOWED_SLACK_BOTS` — comma-separated bot user IDs allowed to invoke, e.g. `USLACKBOT` for Slack reminders (empty = no bots).
 - `REACTION_PROCESSING` / `REACTION_COMPLETED` — reaction emoji names.
+
+The sample MCP server's backend URL is a hardcoded literal (`MOCK_API_BASE_URL`) in `mcp_servers/mock_service_server.py`, not an env var.
+
+`deploy.sh` passes env vars with a `^@^` delimiter (not commas) so allowlist values like `ALLOWED_SLACK_USERS=U1,U2` survive `gcloud run deploy --set-env-vars`.
 
 ## Notes
 
