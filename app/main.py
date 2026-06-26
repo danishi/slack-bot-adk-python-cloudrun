@@ -41,6 +41,9 @@ ALLOWED_SLACK_BOTS = os.environ.get("ALLOWED_SLACK_BOTS", "")
 APP_NAME = os.environ.get("APP_NAME", "slack-bot")
 REACTION_PROCESSING = os.environ.get("REACTION_PROCESSING", "eyes")
 REACTION_COMPLETED = os.environ.get("REACTION_COMPLETED", "white_check_mark")
+# Reaction (emoji name, no colons) that, when added to a message, triggers the
+# bot to run against that message. Defaults to :robot_face:.
+REACTION_TRIGGER = os.environ.get("REACTION_TRIGGER", "robot_face")
 
 # Parse allowed sender IDs (comma-separated). Empty set = allow all human users.
 _allowed_user_ids: set[str] = {
@@ -139,6 +142,33 @@ async def _get_bot_user_id(client) -> str:
         except Exception:
             _bot_user_id = ""
     return _bot_user_id
+
+
+async def _fetch_message(client, channel: str, ts: str) -> dict | None:
+    """Fetch a single Slack message by its timestamp.
+
+    Used by the reaction trigger, whose event payload carries only the channel
+    and ts of the reacted message — not its text or files. Tries the channel
+    history first (covers top-level messages); falls back to the thread replies
+    so that reacting on a threaded reply also works.
+    """
+    try:
+        resp = await client.conversations_history(
+            channel=channel, latest=ts, oldest=ts, inclusive=True, limit=1
+        )
+        for m in resp.get("messages", []):
+            if m.get("ts") == ts:
+                return m
+    except Exception:
+        pass
+    try:
+        resp = await client.conversations_replies(channel=channel, ts=ts, limit=200)
+        for m in resp.get("messages", []):
+            if m.get("ts") == ts:
+                return m
+    except Exception:
+        pass
+    return None
 
 
 async def _build_content_from_event(event: dict) -> types.Content:
@@ -419,6 +449,55 @@ async def handle_direct_message(body, say, client, logger, ack):
     if await _deny_if_not_allowed(event, say):
         return
     await _handle_message(event, say, client, logger)
+
+
+@bolt_app.event("reaction_added")
+async def handle_reaction_added(body, say, client, logger, ack):
+    await ack()
+    event = body["event"]
+    # Only the configured trigger emoji invokes the bot. The 👀 / ✅ reactions the
+    # bot adds itself fire reaction_added events too, but with a different name,
+    # so they are ignored here (no reply loop).
+    if event.get("reaction") != REACTION_TRIGGER:
+        return
+    item = event.get("item", {})
+    if item.get("type") != "message":
+        return
+    channel = item.get("channel")
+    message_ts = item.get("ts")
+    if not channel or not message_ts:
+        return
+
+    # Gate on the user who added the reaction (the invoker). Disallowed users are
+    # ignored silently — reactions are low-signal and a denial reply per reaction
+    # would be noisy.
+    if not _is_sender_allowed({"user": event.get("user", "")}):
+        return
+
+    message = await _fetch_message(client, channel, message_ts)
+    if message is None:
+        return
+
+    # Skip messages already handled / in-flight so multiple reactions on the same
+    # message don't trigger duplicate runs.
+    existing_reactions = {r.get("name") for r in message.get("reactions", [])}
+    if REACTION_PROCESSING in existing_reactions or REACTION_COMPLETED in existing_reactions:
+        return
+
+    # Build a synthetic message event for the shared handler.
+    synthetic_event = {
+        "channel": channel,
+        "ts": message.get("ts", message_ts),
+        "user": message.get("user", event.get("user", "unknown")),
+        "text": message.get("text", ""),
+        "files": message.get("files", []),
+    }
+    if message.get("thread_ts"):
+        synthetic_event["thread_ts"] = message["thread_ts"]
+    if message.get("bot_id"):
+        synthetic_event["bot_id"] = message["bot_id"]
+
+    await _handle_message(synthetic_event, say, client, logger)
 
 
 @fastapi_app.post("/slack/events")

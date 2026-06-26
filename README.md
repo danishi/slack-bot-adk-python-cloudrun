@@ -13,6 +13,7 @@ If you want a simpler, lightweight Slack bot without the ADK framework, check ou
 ## Features
 - Powered by Gemini Enterprise Agent Platform (formerly Vertex AI) Gemini via the ADK. Verified working with `gemini-3.5-flash` (the default `MODEL_NAME`); any other Gemini model can be used by setting `MODEL_NAME`.
 - Responds to `@mention` messages in Slack channels and direct messages (DMs).
+- **Reaction trigger** — react to any message with a configured emoji (default `:robot_face:`, set via `REACTION_TRIGGER`) to run the bot against that message without `@mention`ing it.
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
 - **Web search** via `web_search_agent` (Google Search) and `url_fetch_agent` (URL content retrieval) using `AgentTool`. Allows the bot to look up live web information and fetch page content on demand.
 - **Image generation** via `generate_image` tool using Gemini image generation models:
@@ -32,6 +33,15 @@ If you want a simpler, lightweight Slack bot without the ADK framework, check ou
 ### Interactive assistant
 - `@mention` the bot in a channel or DM it to ask questions, hand it images/PDFs/audio for multimodal understanding, summarize a thread (the bot attributes statements by speaker), search the web, fetch a URL, or generate images.
 - Ask it to look up people ("list the users", "what's user 2's email?") and it delegates to the MCP-backed `mock_service_agent`.
+
+### Trigger by reaction
+Instead of `@mention`ing the bot, you can react to any message with a configured emoji to have the bot run against that message. This is handy for after-the-fact actions — summarize, translate, or answer a question about a message someone already posted.
+
+- The trigger emoji defaults to `:robot_face:` and is configurable via `REACTION_TRIGGER` (emoji name without colons).
+- When an allowlisted user adds the trigger emoji to a message, the bot fetches that message (including any attached files), processes it just like a mention, and posts its reply in the message's thread.
+- The bot's 👀 / ✅ reactions use different emoji, so they never re-trigger the bot. A message that already carries the processing/completed reaction is skipped, so multiple reactions don't cause duplicate runs.
+- Access control still applies: the bot acts only when the **user who added the reaction** is allowed by `ALLOWED_SLACK_USERS`. Reactions from disallowed users are ignored silently.
+- Requires the `reactions:read` scope and the `reaction_added` event subscription (see [Slack App Configuration](#slack-app-configuration)).
 
 ### Scheduled / periodic execution via Slack reminders
 Because the bot can be invoked by an allowlisted bot, you can drive it on a schedule with a plain [Slack reminder](https://slack.com/help/articles/208423427-Set-a-reminder) — no extra cron infrastructure required. When a reminder fires, **Slackbot** posts the reminder text into the channel; if that text `@mention`s the bot, an `app_mention` event reaches your service and the agent runs.
@@ -126,12 +136,17 @@ The Agent Development Kit includes a built-in web-based Development UI that you 
    - `mpim:history`
    - `files:read`
    - `files:write`
+   - `reactions:read`
    - `reactions:write`
    - `users:read`
 3. Install the app to your workspace to obtain `SLACK_BOT_TOKEN` and `SLACK_SIGNING_SECRET`.
 4. Enable **Event Subscriptions** and set the Request URL to `https://<your-cloud-run-service-url>/slack/events`.
-5. Subscribe to bot events: `app_mention`, `message.im`.
+5. Subscribe to bot events: `app_mention`, `message.im`, and `reaction_added`.
 6. Invite the bot to channels where you want to use it. For DMs, simply open a direct message with the bot.
+
+> `reactions:read` and the `reaction_added` event are required for the
+> [reaction trigger](#trigger-by-reaction). Without them the bot still works for
+> `@mention`s and DMs, but reacting with the trigger emoji has no effect.
 
 ## Access Control
 
