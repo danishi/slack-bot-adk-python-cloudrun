@@ -34,7 +34,7 @@ from .tools.generate_image import generate_image, get_and_clear_images, current_
 load_dotenv()
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
 SLACK_SIGNING_SECRET = os.environ["SLACK_SIGNING_SECRET"]
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.5-flash")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.6-flash")
 ALLOWED_SLACK_WORKSPACE = os.environ.get("ALLOWED_SLACK_WORKSPACE")
 ALLOWED_SLACK_USERS = os.environ.get("ALLOWED_SLACK_USERS", "")
 ALLOWED_SLACK_BOTS = os.environ.get("ALLOWED_SLACK_BOTS", "")
