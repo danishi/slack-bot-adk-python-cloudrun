@@ -4,7 +4,7 @@ from google.genai import types
 from dotenv import load_dotenv
 
 load_dotenv()
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.5-flash")
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-3.6-flash")
 
 MOCK_SERVICE_AGENT_DESCRIPTION = (
     "An agent that looks up people in an external user directory service via MCP. "
