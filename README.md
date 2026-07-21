@@ -18,7 +18,8 @@ If you want a simpler, lightweight Slack bot without the ADK framework, check ou
 - **Web search** via `web_search_agent` (Google Search) and `url_fetch_agent` (URL content retrieval) using `AgentTool`. Allows the bot to look up live web information and fetch page content on demand.
 - **Image generation** via `generate_image` tool using Gemini image generation models:
   - `gemini-3-pro-image` ([Nanobanana Pro](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — higher quality
-  - `gemini-3.1-flash-image` ([Nanobanana 2](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — faster generation
+  - `gemini-3.1-flash-image` ([Nanobanana 2](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)) — faster generation (default)
+  - `gemini-3.1-flash-lite-image` (Nanobanana 2 Lite) — fastest, most cost-efficient
   - Generated images are automatically uploaded to the Slack thread.
 - Maintains conversation context by retrieving prior messages in a thread and sending them as conversation history to Gemini.
 - **MCP integration sample** via `mock_service_agent`, which reaches an external service over the [Model Context Protocol](https://modelcontextprotocol.io/). The bundled `mcp_servers/mock_service_server.py` wraps the public [JSONPlaceholder](https://jsonplaceholder.typicode.com/) mock API as a read-only user directory — swap the base URL and tools for your own backend to build a real integration.

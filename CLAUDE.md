@@ -69,7 +69,7 @@ The entire request lifecycle lives in `app/main.py`. The flow:
 
 All config is environment variables (see `.env.example`). Notable ones:
 - `MODEL_NAME` (default `gemini-3.6-flash`) — used by root and all sub-agents.
-- `IMAGE_MODEL_NAME` (default `gemini-3.1-flash-image`, "Nanobanana 2") — the agent can override per-call to `gemini-3-pro-image` ("Nanobanana Pro") for higher quality.
+- `IMAGE_MODEL_NAME` (default `gemini-3.1-flash-image`, "Nanobanana 2") — the agent can override per-call to `gemini-3-pro-image` ("Nanobanana Pro") for higher quality or `gemini-3.1-flash-lite-image` ("Nanobanana 2 Lite") for the fastest, most cost-efficient generation.
 - `GOOGLE_GENAI_USE_VERTEXAI=TRUE`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION` (`global`) — Vertex AI auth.
 - `ALLOWED_SLACK_WORKSPACE` — Slack team ID allowlist (omit to allow all).
 - `ALLOWED_SLACK_USERS` — comma-separated user IDs allowed to invoke (empty = allow all humans).

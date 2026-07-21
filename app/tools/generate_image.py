@@ -37,6 +37,8 @@ async def generate_image(prompt: str, tool_context: ToolContext, model: str = ""
         model: The model to use for image generation.
                Use "gemini-3-pro-image" (Nanobanana Pro) for higher quality.
                Use "gemini-3.1-flash-image" (Nanobanana 2) for faster generation.
+               Use "gemini-3.1-flash-lite-image" (Nanobanana 2 Lite) for the
+               fastest, most cost-efficient generation.
                Defaults to Nanobanana 2 if not specified.
     """
     image_model = model if model else os.environ.get(
