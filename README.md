@@ -11,7 +11,7 @@ If you want to use the [Google Gen AI SDK](https://googleapis.github.io/python-g
 If you want a simpler, lightweight Slack bot without the ADK framework, check out [Nano Banana](https://github.com/danishi/slack-nano-banana-bot-on-google-cloud)🍌
 
 ## Features
-- Powered by Gemini Enterprise Agent Platform (formerly Vertex AI) Gemini via the ADK. Verified working with `gemini-3.6-flash` (the default `MODEL_NAME`); any other Gemini model can be used by setting `MODEL_NAME`.
+- Powered by Gemini Enterprise Agent Platform (formerly Vertex AI) Gemini via the ADK. Verified working with `gemini-3.7-flash` (the default `MODEL_NAME`); any other Gemini model can be used by setting `MODEL_NAME`.
 - Responds to `@mention` messages in Slack channels and direct messages (DMs).
 - **Reaction trigger** — react to any message with a configured emoji (default `:robot_face:`, set via `REACTION_TRIGGER`) to run the bot against that message without `@mention`ing it.
 - Supports text, image, PDF, text file, video, and audio inputs from Slack messages. Files are fetched via authenticated URLs and sent to Gemini for multimodal understanding.
